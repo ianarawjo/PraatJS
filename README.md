@@ -1,5 +1,7 @@
 # PraatJS
 
+** in development **
+
 #### Server + communication module for audio analysis in JS.
 PraatJS is a JS module (PraatServer) + CherryPy server (main.py) for performing audio analysis from Javascript. At a basic level, the code allows you to call [Praat](http://www.fon.hum.uva.nl/praat/) scripts from Javascript.
  * For testing, you'd host the server locally and use the module in your scripts.
