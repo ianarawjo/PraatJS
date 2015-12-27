@@ -83,6 +83,11 @@ var Praat = (function() {
             fd.append('twav', targetblob);
             fd.append('ttimestamps', targetts);
             return sendFormData(fd, 'prosodicsynthesis');
+        }).then(function(data) { // Verify data.
+            return new Promise(function(resolve, reject) {
+                if (typeof data === 'string') reject(data); // Error.
+                else resolve(data);
+            });
         });
     };
 
