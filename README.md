@@ -11,18 +11,24 @@ jQuery, Praat, HTK (optional). Server runs on Mac. Tested on Mac OS X 10.10.5.
 
 #### Installation
 There are three steps to getting PraatJS up and running:
+
 1. Importing the praat.js script
 2. Setting up the server and installing dependencies
-2. Running the audio analysis server
+3. Running the audio analysis server
+
 ##### Importing praat.js
 Copy praat.js into your site directory and add to HTML:
 ```
 <script src="praat.js"></script>
 ```
 Make sure you have jQuery imported as well.
+
 ##### Server setup: installing dependencies
  - Download [the Praat app for Mac](http://www.fon.hum.uva.nl/praat/). Drop Praat.app into the python-server/praat directory.
  - (Optional) Install [HTK](http://htk.eng.cam.ac.uk/) if you want to use the built-in 'align' function to perform forced alignment.
+ - - For HTK, you must also install [SoX](http://sox.sourceforge.net/).
+ - - The Penn Forced Aligner (P2FA) included in this repo has been modified. In line 50 of align.py, ['polyphase' now reads 'rate'](http://stackoverflow.com/questions/26414658/sox-fails-to-identify-output-filename).
+
 ##### Running the server
 In Terminal, cd into the python-server directory and type:
 ```

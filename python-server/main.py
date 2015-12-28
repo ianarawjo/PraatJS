@@ -6,12 +6,12 @@ import tempfile
 import os
 
 def storeTempWAV(wavfile):
-    (fd, filename) = tempfile.mkstemp()
+    (fd, filename) = tempfile.mkstemp('.wav')
     with open(filename, 'wb') as f:
         f.write(wavfile.file.read())
     return (fd, filename)
 def storeTempTXT(txt):
-    (fd, filename) = tempfile.mkstemp()
+    (fd, filename) = tempfile.mkstemp('.txt')
     with open(filename, 'wb') as f:
         f.write(txt)
     return (fd, filename)
@@ -53,6 +53,8 @@ class PraatScripts(object):
     # Returns an array of timestamp objects { word, t_bgn, t_end } (in order).
     @cherrypy.expose
     def align(self, wavfile=None, transcript=None):
+        cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
+
         if wavfile == None or transcript == None:
             return 'Error: Forced alignment needs a transcript.'
 
@@ -63,9 +65,13 @@ class PraatScripts(object):
         (td, trsname) = storeTempTXT(transcript)
 
         # Run Penn Phonetics Lab Forced Alignment Toolkit (P2FA)
-        (_, alignfile) = tempfile.mkstemp()
-        cmd = ['python', 'align.py', wavname, trsname, alignfile]
-        p = subprocess.Popen(cmd)
+        (bd, alignfile) = tempfile.mkstemp()
+
+        # return 'Checking: ' + wavname + ' ' + trsname + ' ' + alignfile
+
+        cmd = ['python', 'p2fa/align.py', wavname, trsname, alignfile]
+        # cmd = ['mediainfo', wavname] # debug -- check whether it's really a wav file...
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         # Read output. Convert TextGrid to timestamp array.
         def textgrid_to_timestamps(txtgrid):
@@ -78,8 +84,10 @@ class PraatScripts(object):
                     for a in annots:
                         if a.text == 'sp': continue # skip spaces
                         ts.append([ a.text, a.start_time, a.end_time ])
+                else:
+                    return 'Error: No word tier.'
             except Exception, err:
-                print 'Error: Could not open TextGrid ' + txtgrid + '.'
+                return 'Error: Could not open TextGrid ' + txtgrid + '. ' + str(err)
             return ts
 
         timestamps = textgrid_to_timestamps(alignfile)

@@ -42,9 +42,16 @@ var Praat = (function() {
     pub.calcTimestamps = function(wavurl, transcript) {
         return loadBlob(wavurl).then(function(wavblob) {
             var fd = new FormData();
+            console.log('PraatJS: Sending wav ' + wavurl + ' with transcript ' + transcript);
             fd.append('wavfile', wavblob);
             fd.append('transcript', transcript);
             return sendFormData(fd, 'align');
+        }).then(function(data) { // Verify data.
+            return new Promise(function(resolve, reject) {
+                console.log('Verifying data...');
+                if (!data || typeof data === 'string') reject(data); // Error.
+                else resolve(data);
+            });
         });
     };
 
@@ -85,7 +92,8 @@ var Praat = (function() {
             return sendFormData(fd, 'prosodicsynthesis');
         }).then(function(data) { // Verify data.
             return new Promise(function(resolve, reject) {
-                if (typeof data === 'string') reject(data); // Error.
+                console.log('Verifying data...');
+                if (!data || typeof data === 'string') reject(data); // Error.
                 else resolve(data);
             });
         });
