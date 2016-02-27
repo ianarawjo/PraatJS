@@ -28,7 +28,8 @@ from .core import TextGrid, IntervalTier, Interval, PointTier, Point, Time
 
 
 def read_textgrid(filename, encoding='utf-8', include_empty_intervals=False):
-    '''Read a Praat TextGrid file and return a TextGrid object. 
+
+    '''Read a Praat TextGrid file and return a TextGrid object.
     If include_empty_intervals is False (the default), empty intervals
     are excluded. If True, they are included. Empty intervals from specific
     tiers can be also included by specifying tier names as a string (for one tier)
@@ -38,10 +39,14 @@ def read_textgrid(filename, encoding='utf-8', include_empty_intervals=False):
         # solely of a single double quotes.
         stg = [line.strip() for line in f.readlines()
             if line.strip() not in ['', '"']]
-    if stg[0] != 'File type = "ooTextFile"':
+
+    if stg[0] != 'File type = "ooTextFile"' and stg[0] != 'File type = "ooTextFile short"':
         raise Exception(filename)
-    if stg[1] != 'Object class = "TextGrid"':
+    if stg[1] != 'Object class = "TextGrid"' and stg[1] != '"TextGrid"':
         raise Exception(filename)
+
+    print('File is a TextGrid.')
+
     # Determine the TextGrid format.
     if stg[2].startswith('xmin'):
         return read_long_textgrid(filename, stg, include_empty_intervals)
@@ -66,7 +71,7 @@ def read_short_textgrid(filename, stg, include_empty_intervals=False):
                     Time(stg_extract[i]), # left bound
                     Time(stg_extract[i + 1]), # right bound
                     text))
-            i += 3               
+            i += 3
         return it
 
     def read_point_tier(stg_extract):
@@ -80,7 +85,7 @@ def read_short_textgrid(filename, stg, include_empty_intervals=False):
             text = stg_extract[i + 1].strip('"') # text w/o quotes
             pt.add_annotation(Point(
                 stg_extract[i], # time
-                text))   
+                text))
             i += 2
         return pt
 

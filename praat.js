@@ -4,7 +4,7 @@
     * Created on Dec 26 2015 *
     @author Ian Arawjo
     @class {Praat} Praat server specification
-    @version 0.0.4
+    @version 0.0.7
     @requires jQuery
 */
 var Praat = (function() {
@@ -20,14 +20,14 @@ var Praat = (function() {
     const HOST = 'http://localhost:8080/';
 
     /**
-     * Advanced. Runs a praat script with arguments provided by args array.
+     * TODO: Advanced. Runs a praat script with arguments provided by args array.
      * !! If an argument
      * @param  {[type]} scriptname [description]
      * @param  {[type]} dataObj    [description]
      * @return {[type]}            [description]
      */
     pub.run = function(scriptname, args) {
-
+        // .. tbi .. //
     };
 
     /**
@@ -49,8 +49,20 @@ var Praat = (function() {
         }).then(function(data) { // Verify data.
             return new Promise(function(resolve, reject) {
                 console.log('Verifying data...');
-                if (!data || typeof data === 'string') reject(data); // Error.
-                else resolve(data);
+                if (!data || (typeof data === 'string' && data.substring(0, 5) === 'Error')) {
+                    reject(data); // Error.
+                    return;
+                }
+
+                // Convert data string to timestamp array:
+                lines = data.trim().split(' ');
+                ts = [];
+                if (lines.length % 3 != 0) reject('Cannot convert to array: Number of lines in timestamp data is not a multiple of three.');
+                for (var i = 0; i < lines.length; i += 3) {
+                    ts.push([ lines[i], parseFloat(lines[i+1]), parseFloat(lines[i+2]) ]);
+                }
+                console.log('Timestamps: ', ts);
+                resolve(ts);
             });
         });
     };
@@ -65,6 +77,47 @@ var Praat = (function() {
             var fd = new FormData();
             fd.append('wavfile', wavblob);
             return sendFormData(fd, 'avgpitch');
+        });
+    };
+
+    /**
+     * Given a pair of speech files saying the same thing and their timestamp data,
+     * transfers properties (specified as options) of the source speech to the target speech.
+     * NOTE: This is the generalized version of the transfer methods below. You can chain those methods
+     * together, but this method performs all operations back-to-back in Praat, making it much faster.
+     * @param  {string} srcurl    URL to the source audio.
+     * @param  {string} targeturl URL to the target audio.
+     * @param  {Array} srcts      Timestamps for the source audio.
+     * @param  {Array} targetts   Timestamps for the target audio.
+     * @param  {[type]} options   - A string containing properties of audio to transfer: any combnation of {prosody, intensity, duration}
+     * @return {Promise}          - Promise passing resynth'd audio
+     */
+    pub.transfer = function(srcurl, targeturl, srcts, targetts, options) {
+
+        var _srcblob = null;
+        return loadBlob(srcurl).then(function(srcblob) {
+            _srcblob = srcblob;
+            return loadBlob(targeturl);
+        }).then(function(targetblob) {
+
+            var fd = new FormData();
+            console.log('PraatJS: Sending wavs [' + srcurl + ", " + targeturl + ']');
+            console.log('PraatJS: with synthesis options: ' + options);
+            if (!_srcblob || !targetblob) console.log('Error: WAV blob is null.');
+            fd.append('srcwav', _srcblob);
+            fd.append('srctimestamps', srcts);
+            fd.append('twav', targetblob);
+            fd.append('ttimestamps', targetts);
+            fd.append('options', options);
+
+            return loadBlob(HOST + 'synthesize', 'POST', fd);
+
+        }).then(function(data) { // Verify data.
+            return new Promise(function(resolve, reject) {
+                console.log('Verifying data...');
+                if (!data || typeof data === 'string') reject(data); // Error.
+                else resolve(data);
+            });
         });
     };
 
@@ -85,11 +138,15 @@ var Praat = (function() {
             return loadBlob(targeturl);
         }).then(function(targetblob) {
             var fd = new FormData();
+            console.log('PraatJS: Sending wavs [' + srcurl + ", " + targeturl + ']');
+            if (!_srcblob || !targetblob) console.log('Error: WAV blob is null.');
             fd.append('srcwav', _srcblob);
             fd.append('srctimestamps', srcts);
             fd.append('twav', targetblob);
             fd.append('ttimestamps', targetts);
-            return sendFormData(fd, 'prosodicsynthesis');
+
+            return loadBlob(HOST + 'prosodicsynthesis', 'POST', fd);
+
         }).then(function(data) { // Verify data.
             return new Promise(function(resolve, reject) {
                 console.log('Verifying data...');
@@ -100,6 +157,71 @@ var Praat = (function() {
     };
 
     /**
+     * Given source and target timestamp data and the target audio,
+     * transfers the duration of words in the source speech to
+     * words in the target speech.
+     * @param  {string} targeturl URL to the target audio.
+     * @param  {Array} srcts      Timestamps for the source audio.
+     * @param  {Array} targetts   Timestamps for the target audio.
+     * @return {Promise} Promise passing a Blob containing the resynthesized WAV file.
+     */
+     pub.transferDuration = function(targeturl, srcts, targetts) {
+         var _srcblob = null;
+         return loadBlob(targeturl).then(function(targetblob) {
+             var fd = new FormData();
+             console.log('PraatJS: Sending wav [' + targeturl + ']');
+             if (!targetblob) console.log('Error: WAV blob is null.');
+             fd.append('srctimestamps', srcts);
+             fd.append('twav', targetblob);
+             fd.append('ttimestamps', targetts);
+
+             return loadBlob(HOST + 'durationsynthesis', 'POST', fd);
+
+         }).then(function(data) { // Verify data.
+             return new Promise(function(resolve, reject) {
+                 console.log('Verifying data...');
+                 if (!data || typeof data === 'string') reject(data); // Error.
+                 else resolve(data);
+             });
+         });
+     };
+
+     /**
+      * Given a pair of speech files saying the same thing and their timestamp data,
+      * transfers the intensity of the source speech to the target speech.
+      * @param  {string} srcurl    URL to the source audio.
+      * @param  {string} targeturl URL to the target audio.
+      * @param  {Array} srcts      Timestamps for the source audio.
+      * @param  {Array} targetts   Timestamps for the target audio.
+      * @return {Promise} Promise passing a Blob containing the resynthesized WAV file.
+      */
+     pub.transferIntensity = function(srcurl, targeturl, srcts, targetts) {
+         var _srcblob = null;
+         return loadBlob(srcurl).then(function(srcblob) {
+             _srcblob = srcblob;
+             return loadBlob(targeturl);
+         }).then(function(targetblob) {
+             var fd = new FormData();
+             console.log('PraatJS: Sending wavs [' + srcurl + ", " + targeturl + ']');
+             if (!_srcblob || !targetblob) console.log('Error: WAV blob is null.');
+             fd.append('srcwav', _srcblob);
+             fd.append('srctimestamps', srcts);
+             fd.append('twav', targetblob);
+             fd.append('ttimestamps', targetts);
+
+             // jQuery doesn't handle BLOB responses.
+             return loadBlob(HOST + 'intensitysynthesis', 'POST', fd);
+
+         }).then(function(data) { // Verify data.
+             return new Promise(function(resolve, reject) {
+                 console.log('Verifying data...');
+                 if (!data || typeof data === 'string') reject(data); // Error.
+                 else resolve(data);
+             });
+         });
+     };
+
+    /**
      * Loads file at URL (usually WAV) into Blob object
      * for further processing.
      * To access do loadBlob(url).then(function(blob){...});)
@@ -107,10 +229,11 @@ var Praat = (function() {
      * @param  {string}   url The url of the file.
      * @return {Promise}  A Promise storing the blob.
      */
-    var loadBlob = function(url) {
+    var loadBlob = function(url, reqType, fd) {
+        if (reqType === undefined) reqType = 'GET';
         return new Promise(function(resolve, reject) {
             var xhr = new XMLHttpRequest();
-            xhr.open('GET', url, true);
+            xhr.open(reqType, url, true);
             xhr.responseType = 'blob';
             xhr.onload = function(e) {
                 if (this.status == 200) {
@@ -118,7 +241,9 @@ var Praat = (function() {
                     resolve(blob);
                 } else reject(this.status);
             };
-            xhr.send();
+
+            if (fd !== undefined) xhr.send(fd);
+            else    xhr.send();
         });
     };
 

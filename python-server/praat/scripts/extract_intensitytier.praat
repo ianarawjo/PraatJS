@@ -1,4 +1,4 @@
-form Extracts pitch contour from WAV file
+form Extracts intensity contour from WAV file
 	comment Input file path
 	text input_wav
     comment Output file path
@@ -6,9 +6,9 @@ form Extracts pitch contour from WAV file
 endform
 
 Read from file... 'input_wav$'
-To Pitch... 0.001 75 600
+To Intensity... 100.0 0.0 'yes'
 selectObject: 2
-Down to PitchTier
+Down to IntensityTier
 selectObject: 3
 Save as short text file... 'output_path$'
 writeInfoLine: output_path$
