@@ -1,7 +1,7 @@
 Read 76 physical / 76 logical HMMs
 Label file will be used to align each file
 Aligning File: ./tmp/tmp.plp
-Created lattice with 39 nodes / 38 arcs from label file
+Created lattice with 19 nodes / 18 arcs from label file
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
@@ -12,14 +12,4 @@ Created lattice with 39 nodes / 38 arcs from label file
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
- WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
-sp OUR sp DAILY sp DIGITAL sp LIFE sp IS sp FULL sp OF sp SELECTED sp CONTENT sp SUCH sp AS sp SOCIAL sp MEDIA sp FEEDS sp RECOMMENDATIONS sp AND sp PERSONALIZED sp SEARCH sp RESULTS sp  ==  [771 frames] 5.0431 [Ac=3888.2 LM=0.0] (Act=155.8)
+sp THIS sp IS sp A sp TEST sp OF sp THE sp EMERGENCY sp BROADCAST sp SYSTEM sp  ==  [331 frames] 8.1914 [Ac=2711.4 LM=0.0] (Act=80.7)

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Praat Testbed</title>
+        <style>
+            body { font-family: Consolas; font-size: 1em; margin-left: 5em; margin-top: 3em; }
+            h4 { margin-bottom: -10px; }
+            h2 { color: Goldenrod; }
+        </style>
+        <script>
+
+        function ajaxSuccess () {
+            var blob = this.response;
+            var url = URL.createObjectURL(blob);
+            document.getElementById('audio').src = url;
+        }
+
+        function AJAXSubmit (oFormElement) {
+          if (!oFormElement.action) { return; }
+          var oReq = new XMLHttpRequest();
+          oReq.onload = ajaxSuccess;
+          oReq.responseType = "blob";
+          if (oFormElement.method.toLowerCase() === "post") {
+            oReq.open("post", oFormElement.action);
+            oReq.send(new FormData(oFormElement));
+          }
+        }
+
+        function setSourceWAV() {
+            calcFilesize('sourceInput', 'srcfilesize');
+        }
+        function setTargetWAV() {
+            calcFilesize('targetInput', 'tgtfilesize');
+        }
+        function setSourceTS() {
+            calcFilesize('sourceTimestampInput', 'srctsfilesize');
+        }
+        function setTargetTS() {
+            calcFilesize('targetTimestampInput', 'tgttsfilesize');
+        }
+
+        function calcFilesize(input_elem_id, span_id) {
+          var nBytes = 0,
+              oFiles = document.getElementById(input_elem_id).files,
+              nFiles = oFiles.length;
+          for (var nFileId = 0; nFileId < nFiles; nFileId++) {
+            nBytes += oFiles[nFileId].size;
+          }
+          var sOutput = nBytes + " bytes";
+          // optional code for multiples approximation
+          for (var aMultiples = ["KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"], nMultiple = 0, nApprox = nBytes / 1024; nApprox > 1; nApprox /= 1024, nMultiple++) {
+            sOutput = nApprox.toFixed(3) + " " + aMultiples[nMultiple] + " (" + nBytes + " bytes)";
+          }
+          // end of optional code
+          document.getElementById(span_id).innerHTML = sOutput;
+        }
+        </script>
+    </head>
+    <body>
+        <form name="uploadForm" action="https://localhost:8080/synthesize" method="post" onsubmit="AJAXSubmit(this); return false;">
+            <h2>Praat.js testbed</h2>
+            <h4>Audio files:</h4>
+            <p>Source WAV:  <input id="sourceInput" type="file" accept="audio/x-wav" name="srcwav" onchange="setSourceWAV();">
+                total size: <span id="srcfilesize">0Kb</span></p>
+            <p>Target WAV:  <input id="targetInput" type="file" accept="audio/x-wav" name="twav" onchange="setTargetWAV();">
+                total size: <span id="tgtfilesize">0Kb</span></p>
+            <h4>Timestamp file(s):</h4>
+            <p>Source TS:  <input id="sourceTimestampInput" type="file" name="srctimestamps" onchange="setSourceTS();">
+                total size: <span id="srctsfilesize">0Kb</span></p>
+            <p>Target TS:  <input id="targetTimestampInput" type="file" name="ttimestamps" onchange="setTargetTS();">
+                total size: <span id="tgttsfilesize">0Kb</span> (optional)</p>
+            <h4>Transfer properties:</h4>
+            <p><label><input name="transfer" type="checkbox" id="prosodyCB" value="prosody"> Pitch contour</label><br>
+                <label><input name="transfer" type="checkbox" id="intensityCB" value="intensity"> Intensity</label><br>
+                <label><input name="transfer" type="checkbox" id="durationCB" value="duration"> Duration</label><br>
+            </p>
+            <p><input type="submit" value="Send file"></p>
+        </form>
+
+        <br><br>
+        <h4>Response:</h4> <p></p>
+        <audio id="audio" controls="controls" autoplay>
+                  Your browser does not support the <code>audio</code> element.
+                </audio>
+    </body>
+</html>

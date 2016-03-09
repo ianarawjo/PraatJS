@@ -20,6 +20,7 @@ import subprocess
 import tempfile
 import os
 import praatUtil
+import math
 
 # Database (you should be running mongod)
 from pymongo import MongoClient
@@ -70,6 +71,10 @@ def normalizeToUnitSquare(X, Y):
         nY.append(y)
 
     return nY
+
+def convertAudioToWAV(wavfile, new_filename):
+    cmd = ['ffmpeg', '-i', wavfile, new_filename]
+    subprocess.call(cmd)
 
 '''
     Handles database + audio cache on filesystem
@@ -318,6 +323,15 @@ class PraatScripts(object):
     def synthesize(self, srcwav=None, srctimestamps=None, twav=None, ttimestamps=None, options="prosody,duration"):
         cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
 
+        if isinstance(srcwav, cherrypy._cpreqbody.Entity) and srcwav.file == None:
+            return 'Error: Synthesis needs source wav.'
+        if isinstance(twav, cherrypy._cpreqbody.Entity) and twav.file == None:
+            return 'Error: Synthesis needs target wav.'
+        if isinstance(srctimestamps, cherrypy._cpreqbody.Entity):
+            srctimestamps = srctimestamps.fullvalue()
+        if isinstance(ttimestamps, cherrypy._cpreqbody.Entity):
+            ttimestamps = ttimestamps.fullvalue()
+
         if srcwav == None or twav == None:
             return 'Error: Synthesis needs both source (srcwav) and target (twav).'
         elif srctimestamps == None or ttimestamps == None:
@@ -327,6 +341,8 @@ class PraatScripts(object):
         intensity = 'intensity' in options
         duration = 'duration' in options
 
+        print('Source timestamps (raw): ' + str(srctimestamps))
+        print('Target timestamp (raw): ' + str(ttimestamps))
         srctimestamps = stringToTimestamps(srctimestamps)
         ttimestamps = stringToTimestamps(ttimestamps)
         print('Source timestamps: ' + str(srctimestamps))
@@ -349,15 +365,15 @@ class PraatScripts(object):
         # ! ORDER OF OPERATIONS IS IMPORTANT !
         # Perform prosodic transfer first (these calls are blocking):
         if prosody:
-            synthpath = praat_prosody(srcname, srctimestamps, synthpath, ttimestamps)
+            synthpath = self.praat_prosody(srcname, srctimestamps, synthpath, ttimestamps)
 
         # Intensity next
         if intensity:
-            synthpath = praat_intensity(srcname, srctimestamps, synthpath, ttimestamps)
+            synthpath = self.praat_intensity(srcname, srctimestamps, synthpath, ttimestamps)
 
         # Duration last. Note that duration invalidates timestamp info.
         if duration:
-            synthpath = praat_intensity(srcname, srctimestamps, synthpath, ttimestamps)
+            synthpath = self.praat_intensity(srcname, srctimestamps, synthpath, ttimestamps)
             ttimestamps = srctimestamps
 
         # Serve file back to client
@@ -625,7 +641,8 @@ class PraatScripts(object):
         # -> 3. Translate + scale the intensity points to the corresponding target segment.
         # -> 4. // OPT: Normalize intensity target's avg intensity, and OPT scale Y using std deviation
         # -> 5. Write result (tX, tY) into new intensity tier and save
-        aX = [], aY = []
+        aX = []
+        aY = []
         for i in range(len(srctimestamps)):
             srcts = srctimestamps[i]
             tgtts = ttimestamps[i]
@@ -739,10 +756,6 @@ class PraatScripts(object):
 
         return resynthpath
 
-    def convertAudioToWAV(self, wavfile, new_filename):
-        cmd = ['ffmpeg', '-i', wavfile, new_filename]
-        subprocess.call(cmd)
-
     # Extract pitch contour from WAV
     def extractPitchContour(self, wavfile):
         (_, pitchtierpath) = tempfile.mkstemp()
@@ -792,8 +805,13 @@ class PraatScripts(object):
 def CORS():
     cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
 
-config = {'/': { 'tools.CORS.on': True }}
+config = {'/': { 'tools.CORS.on': True}}
 cherrypy.tools.CORS = cherrypy.Tool('before_finalize', CORS)
+
+## HTTPS + SSL
+cherrypy.server.ssl_module = 'builtin'
+cherrypy.server.ssl_certificate = "ssl/cert.pem"
+cherrypy.server.ssl_private_key = "ssl/privkey.pem"
 
 #cherrypy.quickstart(PraatScripts(), config=config)
 cherrypy.tree.mount(PraatScripts(), "/", config=config)
