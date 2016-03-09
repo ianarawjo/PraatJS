@@ -1,3 +1,4 @@
 .DS_Store
 Praat.app
 *.pyc
+python-server/ssl
