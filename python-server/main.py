@@ -579,18 +579,33 @@ class PraatScripts(object):
         print('Reading intensity tier from src WAV ' + srcname + ' to filepath ' + inttierpath)
         cmd = ['praat/Praat.app/Contents/MacOS/Praat', '--run', 'praat/scripts/extract_intensitytier.praat', srcname, inttierpath]
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p.wait()
         resp = p.stdout.readline()
         if not resp:
             return 'Error: Could not read intensity tier filename from stdout.'
 
-        # Read src intensity tier into memory
+        # Extract intensity contour from target WAV
+        (_, inttierpath_tgt) = tempfile.mkstemp()
+        print('Reading intensity tier from target WAV ' + tname + ' to filepath ' + inttierpath_tgt)
+        cmd = ['praat/Praat.app/Contents/MacOS/Praat', '--run', 'praat/scripts/extract_intensitytier.praat', tname, inttierpath_tgt]
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p.wait()
+        resp = p.stdout.readline()
+        if not resp:
+            return 'Error: Could not read intensity tier filename from stdout.'
+
+        # Read intensity tiers into memory
         print('Reading from source intensity tier file: ' + inttierpath)
         (X, Y) = praatUtil.readIntensityTier(inttierpath)
+        print('Reading from target intensity tier file: ' + inttierpath_tgt)
+        (tX, tY) = praatUtil.readIntensityTier(inttierpath_tgt)
 
-        #print('Reading from TTS pitch tier file: ' + tpitchtierpath)
-        #(ttsX, ttsY) = praatUtil.readPitchTier(tpitchtierpath)
+        # Calculate avg intensity for each word
+        # Calculate avg intensity for the whole sentence
+        (avgint_src, stdeviation_src) = computeMeanAndDeviation(withoutZeros(Y)) # TODO: Weight points by area...
+        (avgint_tgt, stdeviation_tgt) = computeMeanAndDeviation(withoutZeros(Y)) # TODO: Weight points by area...
 
-        def _getIntPointsInSegment(bgn, end):
+        def _getIntPointsInSegment(bgn, end, X, Y):
             pps = []
             for i in xrange(len(X)):
                 x = X[i]
@@ -598,6 +613,11 @@ class PraatScripts(object):
                 if x >= bgn and x < end:
                     pps.append([x, y])
             return pps # format [x, y]
+        def _getAvgInt(pps):
+            avg = 0
+            for i in xrange(len(pps)):
+                avg += pps[i][1]
+            return avg / len(pps)
 
         # Transpose intensity points from source to target, according to timestamp data.
         # -> 1. Loop through all source segments (words).
@@ -605,8 +625,7 @@ class PraatScripts(object):
         # -> 3. Translate + scale the intensity points to the corresponding target segment.
         # -> 4. // OPT: Normalize intensity target's avg intensity, and OPT scale Y using std deviation
         # -> 5. Write result (tX, tY) into new intensity tier and save
-        tX = []
-        tY = []
+        aX = [], aY = []
         for i in range(len(srctimestamps)):
             srcts = srctimestamps[i]
             tgtts = ttimestamps[i]
@@ -616,17 +635,33 @@ class PraatScripts(object):
                 continue # Skip null timestamps.
             tbgn = tgtts[1]
             tend = tgtts[2]
-            lensrc = end - bgn
-            lentgt = tend - tbgn
-            pps = _getIntPointsInSegment(bgn, end)
-            for p in pps:
-                dx = p[0] - bgn # x = px - dx ... x2 + tdx = tx ... x2 = ttimestamps[i]['t_bgn'] ... tdx = (dx / (end-bgn)) * (tend-tbgn)
-                tdx = (dx / lensrc) * lentgt
-                tp = tbgn + tdx # timestamp transform... ???
-                tv = p[1] # p[1] # tbi: value transform...
-                tX.append(tp)
-                tY.append(tv)
-        tinttier = storeTempIntensityTier(tX, tY) # will need to figure out xmin and xmax properties ...
+
+            # Get part of the intensity contour corresponding to this ts interval
+            pps = _getIntPointsInSegment(bgn, end, X, Y)
+            tpps = _getIntPointsInSegment(tbgn, tend, tX, tY)
+
+            # Calculate average intensity of the word
+            avgint_word = _getAvgInt(pps)
+            avgint_word_tgt = _getAvgInt(tpps)
+
+            # Compute how the word's intensity differs from the avg
+            intmult_src = avgint_word / avgint_src # e.g., 120% intensity = 1.2
+            intmult_tgt = avgint_word_tgt / avgint_tgt
+
+            # Transfer intensity by scaling src to target
+            # NOTE: This is interval will get _multiplied_ with the target audio. So if
+            # we want no change, all intervals will equal 1. Consider if the src intensity is 20% greater
+            # than avg, and the target intensity is 20% less. Now intmult_src=1.2 and intmult_tgt=0.8.
+            # intmult_src / intmult_tgt would equal 1.5, corresponding to a 50% increase. Conversely,
+            # scaling target 1.2 to src 0.8 corresponds to a 33.3% decrease. Does that make sense?
+            aX.append(tbgn)
+            aY.append(intmult_src / intmult_tgt) # if intensity variations are equal, this will do nothing!
+            aX.append(tend)
+            aY.append(intmult_src / intmult_tgt)
+            aX.append(tend+0.0001)
+            aY.append(1.0)
+
+        tinttier = storeTempIntensityTier(aX, aY) # will need to figure out xmin and xmax properties ...
 
         # Run Praat resynthesis script.
         (_, resynthpath) = tempfile.mkstemp()
