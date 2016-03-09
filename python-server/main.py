@@ -331,6 +331,8 @@ class PraatScripts(object):
             srctimestamps = srctimestamps.fullvalue()
         if isinstance(ttimestamps, cherrypy._cpreqbody.Entity):
             ttimestamps = ttimestamps.fullvalue()
+        if isinstance(options, cherrypy._cpreqbody.Entity):
+            options = options.fullvalue()
 
         if srcwav == None or twav == None:
             return 'Error: Synthesis needs both source (srcwav) and target (twav).'
@@ -373,7 +375,7 @@ class PraatScripts(object):
 
         # Duration last. Note that duration invalidates timestamp info.
         if duration:
-            synthpath = self.praat_intensity(srcname, srctimestamps, synthpath, ttimestamps)
+            synthpath = self.praat_duration(srctimestamps, synthpath, ttimestamps)
             ttimestamps = srctimestamps
 
         # Serve file back to client
