@@ -12,4 +12,4 @@ Created lattice with 19 nodes / 18 arcs from label file
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
-sp THIS sp IS sp A sp TEST sp OF sp THE sp EMERGENCY sp BROADCAST sp SYSTEM sp  ==  [331 frames] 8.1914 [Ac=2711.4 LM=0.0] (Act=80.7)
+sp THIS sp IS sp A sp TEST sp OF sp THE sp EMERGENCY sp BROADCAST sp SYSTEM sp  ==  [348 frames] 5.9899 [Ac=2084.5 LM=0.0] (Act=81.3)

@@ -185,15 +185,18 @@ def storeTempWAV(wavfile):
     (fd, filename) = tempfile.mkstemp('.wav')
     with open(filename, 'wb') as f:
         f.write(wavfile.file.read())
+    os.chmod(filename, 0o755)
     return (fd, filename)
 def storeTempTXT(txt):
     (fd, filename) = tempfile.mkstemp('.txt')
     with open(filename, 'wb') as f:
         f.write(txt)
+    os.chmod(filename, 0o755)
     return (fd, filename)
 def storeTempGrid(txtgrid):
     (fd, filename) = tempfile.mkstemp()
     tgt.io.write_to_file(txtgrid, filename, format='short', encoding='utf8')
+    os.chmod(filename, 0o755)
     return filename
 def storeTempPitchTier(dataX, dataY): # this is the short version, which is what praatUtil can read
     (fd, filename) = tempfile.mkstemp()
@@ -205,6 +208,7 @@ def storeTempPitchTier(dataX, dataY): # this is the short version, which is what
         for i in xrange(1, len(dataX)-1):
             f.write(str(dataX[i]) + '\n')
             f.write(str(dataY[i]) + '\n')
+    os.chmod(filename, 0o755)
     return filename
 def storeTempDurTier(wavdur, durps): # this is the short version, which is what praatUtil can read
     (_, filename) = tempfile.mkstemp()
@@ -215,6 +219,7 @@ def storeTempDurTier(wavdur, durps): # this is the short version, which is what 
         f.write(str(len(durps) / 2) + '\n')
         for i in xrange(len(durps)):
             f.write(str(durps[i]) + '\n')
+    os.chmod(filename, 0o755)
     return filename
 def storeTempIntensityTier(dataX, dataY):
     (_, filename) = tempfile.mkstemp()
@@ -223,9 +228,10 @@ def storeTempIntensityTier(dataX, dataY):
         f.write(str(dataX[0]) + '\n')
         f.write(str(dataX[-1]) + '\n')
         f.write(str(len(dataX)-2) + '\n')
-        for i in xrange(1, len(dataX)-1):
+        for i in xrange(0, len(dataX)):
             f.write(str(dataX[i]) + '\n')
             f.write(str(dataY[i]) + '\n')
+    os.chmod(filename, 0o755)
     return filename
 def stringToTimestamps(strg):
     s = strg.split(',')
@@ -659,6 +665,10 @@ class PraatScripts(object):
             pps = _getIntPointsInSegment(bgn, end, X, Y)
             tpps = _getIntPointsInSegment(tbgn, tend, tX, tY)
 
+            if len(pps) == 0 or len(tpps) == 0:
+                print('Warning @ praat_intensity: skipping word-intensity gap. TODO: fix in future!')
+                continue
+
             # Calculate average intensity of the word
             avgint_word = _getAvgInt(pps)
             avgint_word_tgt = _getAvgInt(tpps)
@@ -673,12 +683,10 @@ class PraatScripts(object):
             # than avg, and the target intensity is 20% less. Now intmult_src=1.2 and intmult_tgt=0.8.
             # intmult_src / intmult_tgt would equal 1.5, corresponding to a 50% increase. Conversely,
             # scaling target 1.2 to src 0.8 corresponds to a 33.3% decrease. Does that make sense?
-            aX.append(tbgn)
-            aY.append(intmult_src / intmult_tgt) # if intensity variations are equal, this will do nothing!
-            aX.append(tend)
-            aY.append(intmult_src / intmult_tgt)
-            aX.append(tend+0.0001)
-            aY.append(1.0)
+            aX.append(tbgn+0.000001)
+            aY.append(10 ** (intmult_src / intmult_tgt)) # if intensity variations are equal, this will do nothing!
+            aX.append(tend-0.000001)
+            aY.append(10 ** (intmult_src / intmult_tgt))
 
         tinttier = storeTempIntensityTier(aX, aY) # will need to figure out xmin and xmax properties ...
 
