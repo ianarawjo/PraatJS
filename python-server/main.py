@@ -320,6 +320,7 @@ class PraatScripts(object):
         timestamps = textgrid_to_timestamps(alignfile)
 
         print('Timestamps: ' + timestamps);
+        print('(Timestamps are stored @ ' + alignfile + ')');
 
         # Return timestamp array.
         return timestamps
@@ -536,6 +537,8 @@ class PraatScripts(object):
         # -> 5. Write result (tX, tY) into new pitch tier and save
         (src_mean, src_stdeviation) = computeMeanAndDeviation(withoutZeros(Y))
         (tgt_mean, tgt_stdeviation) = computeMeanAndDeviation(withoutZeros(ttsY))
+        print('srcmean --------> ' + str(src_mean))
+        print('srcdev --------> ' + str(src_stdeviation))
         tX = []
         tY = []
         for i in range(len(srctimestamps)):
@@ -551,6 +554,8 @@ class PraatScripts(object):
             lentgt = tend - tbgn
             pps = _getPitchPointsInSegment(bgn, end)
             for p in pps:
+                if p[1] > src_mean * 2.5: continue # skip outliers
+
                 dx = p[0] - bgn # x = px - dx ... x2 + tdx = tx ... x2 = ttimestamps[i]['t_bgn'] ... tdx = (dx / (end-bgn)) * (tend-tbgn)
                 tdx = (dx / lensrc) * lentgt
                 tp = tbgn + tdx # timestamp transform... ???
@@ -561,7 +566,15 @@ class PraatScripts(object):
                 # Pitch renormalization
                 # RESCALE SRC Y BY ST DEVIATION --> rescaled_src_pitch = (src_pitch - src_avgpitch) / src_stdeviation * t_stdeviation
                 # TRANSLATE SRC Y TO NEW MEAN --> rescaled_src_pitch + (t_avgpitch - src_avgpitch)
-                tv = ((p[1] - src_mean) / src_stdeviation * tgt_stdeviation) + (tgt_mean - src_mean)
+
+                # renormalize w/ mean + st deviation
+                tv = ((p[1] - src_mean) / src_stdeviation * tgt_stdeviation) + tgt_mean
+
+                # renormalize w/ just mean offset
+                #tv = p[1] / src_mean * tgt_mean
+
+                # one-to-one mapping
+                #tv = p[1]
 
                 tX.append(tp)
                 tY.append(tv)
@@ -629,6 +642,11 @@ class PraatScripts(object):
         (avgint_src, stdeviation_src) = computeMeanAndDeviation(withoutZeros(Y)) # TODO: Weight points by area...
         (avgint_tgt, stdeviation_tgt) = computeMeanAndDeviation(withoutZeros(Y)) # TODO: Weight points by area...
 
+        tintmax = max(Y)
+        aY = []
+        for i in xrange(len(Y)):
+            aY.append(tintmax - Y[i])
+
         def _getIntPointsInSegment(bgn, end, X, Y):
             pps = []
             for i in xrange(len(X)):
@@ -668,6 +686,15 @@ class PraatScripts(object):
             if len(pps) == 0 or len(tpps) == 0:
                 print('Warning @ praat_intensity: skipping word-intensity gap. TODO: fix in future!')
                 continue
+
+            # DEBUG: Invert contour
+            '''for k in xrange(len(tpps)):
+                tp = tpps[k]
+                tx = tp[0]
+                ty = tintmax - tp[1]
+                aX.append(tx)
+                aY.append(ty)
+            continue'''
 
             # Calculate average intensity of the word
             avgint_word = _getAvgInt(pps)
@@ -733,7 +760,7 @@ class PraatScripts(object):
             tdurspace = prev_tend - tbgn
             dursrc = end - bgn
             durtgt = tend - tbgn
-            ratio = dursrc / (durtgt + 0.00001)
+            ratio = 1.4 * dursrc / (durtgt + 0.00001)
             bgn_space_ratio = 1.0
 
             if durspace > 0 and tdurspace > 0: # We should scale the spaces too!

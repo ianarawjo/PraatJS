@@ -1,7 +1,7 @@
 Read 76 physical / 76 logical HMMs
 Label file will be used to align each file
 Aligning File: ./tmp/tmp.plp
-Created lattice with 19 nodes / 18 arcs from label file
+Created lattice with 45 nodes / 44 arcs from label file
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
@@ -12,4 +12,17 @@ Created lattice with 19 nodes / 18 arcs from label file
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
-sp THIS sp IS sp A sp TEST sp OF sp THE sp EMERGENCY sp BROADCAST sp SYSTEM sp  ==  [348 frames] 5.9899 [Ac=2084.5 LM=0.0] (Act=81.3)
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+sp THE sp FIRST sp PARAGRAPH sp SEEM sp PRETTY sp GOOD sp BUT sp I sp DIDN'T sp KNOW sp WHETHER sp YOU sp WERE sp TRYING sp TO sp SAY sp A sp KEY sp FOR sp THE sp SECOND sp PARAGRAPH sp  ==  [1102 frames] 7.1258 [Ac=7852.7 LM=0.0] (Act=185.9)
