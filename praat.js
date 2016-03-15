@@ -40,6 +40,7 @@ var Praat = (function() {
      * @return {Promise} Promise passing timestamps in the form [word, bgn, end].
      */
     pub.calcTimestamps = function(wavurl, transcript) {
+        var words = transcript.trim().split(/\s+/g);
         return loadBlob(wavurl).then(function(wavblob) {
             var fd = new FormData();
             console.log('PraatJS: Sending wav ' + wavurl + ' with transcript ' + transcript);
@@ -55,12 +56,43 @@ var Praat = (function() {
                 }
 
                 // Convert data string to timestamp array:
+                var i = 0;
                 lines = data.trim().split(' ');
                 ts = [];
                 if (lines.length % 3 !== 0) reject('Cannot convert to array: Number of lines in timestamp data is not a multiple of three.');
-                for (var i = 0; i < lines.length; i += 3) {
+                for (; i < lines.length; i += 3) {
                     ts.push([ lines[i], parseFloat(lines[i+1]), parseFloat(lines[i+2]) ]);
                 }
+
+                // Repair and missing timestamps. This may happen with words HTK
+                // does not know about. We want to be sure, however, that our return
+                // array length matches the # of words in the transcript.
+                if (words.length !== ts.length) {
+                    console.log('PraatJS: HTK returned ' + ts.length + ' timestamps when ' + words.length + ' were sent. Attempting a repair...');
+                    var matches = function(w1,w2) { return w1.trim().toLowerCase() === w2.trim().toLowerCase(); };
+                    for (i = 0; i < words.length; i++) {
+                        if (matches(ts[i][0], words[i]) === false) {
+                            var j = i + 1;
+                            while (j < words.length && i < words.length) { // Check next words for match.
+                                if (matches(ts[i][0], words[j])) {
+                                    // HTK skipped over a word it didn't know.
+                                    ts.splice(i,0,[words[i], ts[i][2], ts[i][2]]);
+                                    break;
+                                } else {
+                                    ts.splice(i,0,[words[j], ts[i][2], ts[i][2]]);
+                                    i++;
+                                }
+                                j++;
+                            }
+                        }
+                    }
+
+                    if (words.length !== ts.length)
+                        console.warn('PraatJS: ...Unable to repair.');
+                    else
+                        console.log('PraatJS: ...Success!');
+                }
+
                 console.log('Timestamps: ', ts);
                 resolve(ts);
             });
