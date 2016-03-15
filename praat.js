@@ -17,7 +17,7 @@ var Praat = (function() {
      * @type {string}
      * @default
      */
-    const HOST = 'http://localhost:8080/';
+    const HOST = 'https://localhost:8080/';
 
     /**
      * TODO: Advanced. Runs a praat script with arguments provided by args array.
@@ -71,9 +71,16 @@ var Praat = (function() {
                     console.log('PraatJS: HTK returned ' + ts.length + ' timestamps when ' + words.length + ' were sent. Attempting a repair...');
                     var matches = function(w1,w2) { return w1.trim().toLowerCase() === w2.trim().toLowerCase(); };
                     for (i = 0; i < words.length; i++) {
+                        if (i >= ts.length) {
+                            // Append all missing words before breaking out. (handles case of unknown word at end of ts's)
+                            for (var j = i; j < words.length; j++)
+                                ts.push([words[j], ts[i-1][2], ts[i-1][2]]);
+                            break;
+                        }
                         if (matches(ts[i][0], words[i]) === false) {
                             var j = i + 1;
                             while (j < words.length && i < words.length) { // Check next words for match.
+                                console.log(ts[i][0], words[j]);
                                 if (matches(ts[i][0], words[j])) {
                                     // HTK skipped over a word it didn't know.
                                     ts.splice(i,0,[words[i], ts[i][2], ts[i][2]]);
