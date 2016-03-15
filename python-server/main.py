@@ -31,6 +31,137 @@ user_collection = db['users'] # for safety reasons
 
 constants = { 'SEGMENTS':40 }
 
+# Calculates the area between two graphs
+# of arbitrary x-distances between each point.
+# > Does this by isolating the 'top graph' and the 'bottom graph'
+# > based on their intersections, then subtracting the bottom area
+# > from the top.
+# < Takes: two lists of 2D tuples (x, y) representing graph A and B
+# < NOTE: While dx can vary between points in A and B,
+# < dx should be in the same ultimate range, i.e. 0.0 to 1.0 or 0 to 100,
+# < and y should always be nonnegative (>= 0) for both A and B.
+def areaBetween(A, B):
+    if A == None or B == None or len(A) == 0 or len(B) == 0:
+        return 0
+    elif B[0][1] > A[0][1]: # enforce that A starts with highest Y-value
+        return areaBetween(B, A)
+
+    # Thanks to Paul Draper @ SO.
+    # http://stackoverflow.com/a/20677983
+    def findIntersection(line1, line2):
+
+        # Thanks to Grumdrig @ SO.
+        # http://stackoverflow.com/a/9997374
+        def ccw(A,B,C):
+            return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+
+        # Return true if line segments AB and CD intersect
+        def intersect(A,B,C,D):
+            return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+
+        # First, determine whether SEGMENTS intersect...
+        if intersect(line1[0], line1[1], line2[0], line2[1]) == False:
+            return None
+
+        # ...Then determine where.
+        xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+        ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+        def det(a, b):
+            return a[0] * b[1] - a[1] * b[0]
+
+        div = det(xdiff, ydiff)
+        if div == 0:
+           return None
+
+        d = (det(*line1), det(*line2))
+        x = det(d, xdiff) / div
+        y = det(d, ydiff) / div
+        return (x, y)
+
+    # Assumes all y's are >= 0...
+    def areaUnder(X):
+        area = 0
+        for p in xrange(len(X)-1):
+            x, y = X[p]
+            nX, nY = X[p+1]
+            dx = nX - x
+            area += dx * abs(nY - y) / 2.0 + min(y, nY) * dx # area += dA
+        return area
+
+    # A starts high.
+    top = []
+    bottom = []
+    j = 0
+    for i in xrange(len(A)-1):
+        aX, aY = A[i]
+        naX, naY = A[i+1]
+        bX, bY = B[j]
+        nbX, nbY = B[j+1]
+        while bX < aX and nbX < naX: # B's first point is behind us. Skip to the point where it's not.
+            bottom.append(B[j])
+            j += 1
+            bX, bY = B[j]
+            if j < len(B)-1: nbX, nbY = B[j+1]
+            else:
+                bottom.append(B[j])
+                break
+
+        if j >= len(B)-1:
+            break
+
+        # B's line starts after (or on) A's.
+        inter = findIntersection((A[i], A[i+1]), (B[j], B[j+1]))
+        if inter is None: # A's line is on top.
+            top.append(A[i])
+            continue
+        else: # The lines intersect, and B comes out on top.
+            # print((A[i], A[i+1], B[j], B[j+1], inter))
+            top.append(A[i])
+            top.append(inter)
+            bottom.append(B[j])
+            bottom.append(inter)
+            nextBottom = list(A[(i+1):]).insert(0, inter) # A is now the underdog
+            nextTop = list(B[(j+1):]).insert(0, (inter[0], inter[1]+0.00001)) # B's starting value must be slightly higher
+
+            #area_under_top = areaUnder(top)
+            #area_under_bot = areaUnder(bottom)
+            #print('Area under top: ' + str(area_under_top))
+            #print('Area under bottom: ' + str(area_under_bot))
+
+            return areaUnder(top) - areaUnder(bottom) + areaBetween(nextTop, nextBottom) # yay tail recursion
+
+    # We've reached the end of B.
+    # area_under_top = areaUnder(top)
+    # area_under_bot = areaUnder(bottom)
+    # print('Area under top: ' + str(area_under_top))
+    # print('Area under bottom: ' + str(area_under_bot))
+    return areaUnder(top) - areaUnder(bottom)
+
+def mapToInterval(A, originalInterval, newInterval):
+    C = []
+    oix, oix2 = originalInterval
+    owidth = oix2 - oix
+    nix, nix2 = newInterval
+    nwidth = nix2 - nix
+    for i in xrange(len(A)):
+        x, y = A[i]
+        ratio = (x - oix) / owidth
+        if i == 0: C.append((nix, y))
+        C.append((nix + ratio * nwidth, y))
+    if len(C) > 0: C.append((nix2, C[-1][1]))
+    return C
+def toTupleList(A):
+    C = []
+    for i in xrange(len(A)):
+        C.append((A[i][0], A[i][1]))
+    return C
+def mapSubtractY(A, mean):
+    C = []
+    for i in xrange(len(A)):
+        C.append((A[i][0], A[i][1] - mean))
+    return C
+
 def eliminateNullPoints(X, Y):
     cX = []
     cY = []
@@ -379,7 +510,7 @@ class PraatScripts(object):
         # ! ORDER OF OPERATIONS IS IMPORTANT !
         # Perform prosodic transfer first (these calls are blocking):
         if prosody:
-            synthpath = self.praat_prosody(srcname, srctimestamps, synthpath, ttimestamps)
+            synthpath = self.praat_prosody(srcname, srctimestamps, synthpath, ttimestamps, 4000)
 
         # Intensity next
         if intensity:
@@ -498,7 +629,7 @@ class PraatScripts(object):
         return serve_file(resynthpath, content_type='audio/wav', disposition='attachment')
 
     # PRIVATE: PRAAT TRANSFER METHODS
-    def praat_prosody(self, srcname, srctimestamps, tname, ttimestamps):
+    def praat_prosody(self, srcname, srctimestamps, tname, ttimestamps, transferThreshold=0):
 
         # Extract pitch contour from source WAV
         (_, pitchtierpath) = tempfile.mkstemp()
@@ -535,11 +666,11 @@ class PraatScripts(object):
                     minI = i
             return ttsY[minI] # lazy but let's see how this fares
 
-        def _getPitchPointsInSegment(bgn, end):
+        def _getPitchPointsInSegment(bgn, end, A, B):
             pps = []
-            for i in xrange(len(X)):
-                x = X[i]
-                y = Y[i]
+            for i in xrange(len(A)):
+                x = A[i]
+                y = B[i]
                 if x >= bgn and x < end:
                     pps.append([x, y])
             return pps # format [x, y]
@@ -567,7 +698,34 @@ class PraatScripts(object):
             tend = tgtts[2]
             lensrc = end - bgn
             lentgt = tend - tbgn
-            pps = _getPitchPointsInSegment(bgn, end)
+            pps = _getPitchPointsInSegment(bgn, end, X, Y)
+
+            if abs(tbgn - tend) < 0.00001:
+                tpps = _getPitchPointsInSegment(tbgn, tend, ttsX, ttsY)
+                for m in xrange(len(tpps)):
+                    tX.append(tpps[m][0])
+                    tY.append(tpps[m][1])
+                print('(skipping "' + srcts[0] + '")')
+                continue # Skip the prosody transfer for null words
+
+            if transferThreshold != 0:
+                tpps = _getPitchPointsInSegment(tbgn, tend, ttsX, ttsY)
+                norm_tpps = mapSubtractY(mapToInterval(toTupleList(tpps), (tbgn, tend), (0, 100)), tgt_mean - 1000)
+                norm_pps = mapSubtractY(mapToInterval(toTupleList(pps), (bgn, end), (0, 100)), src_mean - 1000) # that -1000 ensures all the y's will be > 0 for areaBetween.
+                # print('Calculating difference between prosodic curves for "' + srcts[0] + '"...')
+                if len(norm_tpps) == 0 or len(norm_pps) == 0:
+                    area = 0
+                else:
+                    area = areaBetween(norm_pps, norm_tpps)
+                # print('Difference between prosodic curves for "' + srcts[0] + '" is ', area)
+                if area < transferThreshold:
+                    for m in xrange(len(tpps)):
+                        tX.append(tpps[m][0])
+                        tY.append(tpps[m][1])
+                    print('(skipping "' + srcts[0] + '")')
+                    continue # Skip the prosody transfer for this word b/c it doesn't clear our threshold difference.
+
+            print('Transferring prosody for word "' + srcts[0] + '" with area ' + str(area))
             for p in pps:
                 if p[1] > src_mean * 2.5: continue # skip outliers
 
