@@ -322,6 +322,10 @@ class PraatScripts(object):
         print('Timestamps: ' + timestamps);
         print('(Timestamps are stored @ ' + alignfile + ')');
 
+        os.remove(wavname)
+        os.remove(trsname)
+        os.remove(alignfile)
+
         # Return timestamp array.
         return timestamps
 
@@ -366,6 +370,7 @@ class PraatScripts(object):
         # * a WAV file that Praat can't read. So we need to convert the audio after-the-fact. (sigh)
         nname = tname[:-4] + '_.wav'
         convertAudioToWAV(tname, nname)
+        os.remove(tname)
         tname = nname
 
         # Synthesis operations
@@ -384,6 +389,9 @@ class PraatScripts(object):
         if duration:
             synthpath = self.praat_duration(srctimestamps, synthpath, ttimestamps)
             ttimestamps = srctimestamps
+
+        # Teardown
+        os.remove(srcname)
 
         # Serve file back to client
         return serve_file(synthpath, content_type='audio/wav', disposition='attachment')
@@ -411,9 +419,12 @@ class PraatScripts(object):
         # * a WAV file that Praat can't read. So we need to convert the audio after-the-fact. (sigh)
         nname = tname[:-4] + '_.wav'
         convertAudioToWAV(tname, nname)
+        os.remove(tname)
         tname = nname
 
         resynthpath = praat_intensity(srcname, srctimestamps, tname, ttimestamps)
+
+        os.remove(srcname)
 
         # Send back the resynth'd WAV file
         return serve_file(resynthpath, content_type='audio/wav', disposition='attachment')
@@ -441,6 +452,7 @@ class PraatScripts(object):
         # * a WAV file that Praat can't read. So we need to convert the audio after-the-fact. (sigh)
         nname = tname[:-4] + '_.wav'
         convertAudioToWAV(tname, nname)
+        os.remove(tname)
         tname = nname
 
         resynthpath = praat_duration(srctimestamps, tname, ttimestamps)
@@ -474,10 +486,13 @@ class PraatScripts(object):
         # * a WAV file that Praat can't read. So we need to convert the audio after-the-fact. (sigh)
         nname = tname[:-4] + '_.wav'
         convertAudioToWAV(tname, nname)
+        os.remove(tname)
         tname = nname
 
         # Perform prosody transfer on stored files via Praat scripts
         resynthpath = praat_prosody(srcname, srctimestamps, tname, ttimestamps)
+
+        os.remove(srcname)
 
         # Send back the resynth'd WAV file
         return serve_file(resynthpath, content_type='audio/wav', disposition='attachment')
@@ -607,6 +622,12 @@ class PraatScripts(object):
 
         print('Praat response: ' + resynthpath_resp)
 
+        # Teardown
+        os.remove(pitchtierpath)
+        os.remove(tpitchtierpath)
+        os.remove(tpitchtier)
+        os.remove(tname)
+
         return resynthpath;
 
     def praat_intensity(self, srcname, srctimestamps, tname, ttimestamps):
@@ -733,6 +754,12 @@ class PraatScripts(object):
 
         print('Praat response: ' + resp)
 
+        # Teardown
+        os.remove(inttierpath)
+        os.remove(inttierpath_tgt)
+        os.remove(tinttier)
+        os.remove(tname)
+
         return resynthpath
 
     def praat_duration(self, srctimestamps, tname, ttimestamps):
@@ -791,6 +818,10 @@ class PraatScripts(object):
 
         print('Praat response: ' + resynthpath_resp)
 
+        # Teardown
+        os.remove(tdurtier)
+        os.remove(tname)
+
         return resynthpath
 
     # Extract pitch contour from WAV
@@ -829,6 +860,9 @@ class PraatScripts(object):
         #return wavfile['filename']
         cmd = ['praat/Praat.app/Contents/MacOS/Praat', '--run', 'praat/scripts/avg_pitch.praat', filename, '10', '75', '500', '11025']
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        # Teardown
+        os.remove(filename)
 
         # Read result
         while True:

@@ -57,7 +57,7 @@ var Praat = (function() {
                 // Convert data string to timestamp array:
                 lines = data.trim().split(' ');
                 ts = [];
-                if (lines.length % 3 != 0) reject('Cannot convert to array: Number of lines in timestamp data is not a multiple of three.');
+                if (lines.length % 3 !== 0) reject('Cannot convert to array: Number of lines in timestamp data is not a multiple of three.');
                 for (var i = 0; i < lines.length; i += 3) {
                     ts.push([ lines[i], parseFloat(lines[i+1]), parseFloat(lines[i+2]) ]);
                 }
