@@ -1,7 +1,7 @@
 Read 76 physical / 76 logical HMMs
 Label file will be used to align each file
 Aligning File: ./tmp/tmp.plp
-Created lattice with 59 nodes / 58 arcs from label file
+Created lattice with 77 nodes / 76 arcs from label file
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
@@ -32,4 +32,13 @@ Created lattice with 59 nodes / 58 arcs from label file
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
  WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
-sp HOWEVER sp IT sp IS sp TRUE sp THAT sp EVERYTHING sp CANNOT sp BE sp EXPERIENCED sp ONE sp MIGHT sp THINK sp THAT sp TO sp LEARN sp ABOUT sp THE sp AND sp ITS sp NATURE sp IT sp IS sp NOT sp ESSENTIAL sp TO sp GO sp ON sp THE sp MOON sp  ==  [985 frames] 6.3218 [Ac=6227.0 LM=0.0] (Act=232.6)
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+ WARNING [-8232]  ExpandWordNet: Pronunciation 1 of sp is 'tee' word in HVite
+sp WELL sp HAVING sp A sp BIT sp OF sp TROUBLE sp WITH sp PARAGRAPH sp THREE sp THAT sp I sp THINK sp YOUR sp OVERALL sp YOU sp TARA sp OKAY sp JOB sp ALL sp MARKET sp WILL sp GO sp BACK sp AND sp REVISE sp BEFORE sp NOON sp ON sp TWO sp YEARS sp ON sp OPENNESS sp IS sp HERE sp IN sp THE sp RIGHT sp DIRECTION sp  ==  [1569 frames] 7.2801 [Ac=11422.5 LM=0.0] (Act=295.7)

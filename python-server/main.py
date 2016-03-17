@@ -566,9 +566,9 @@ class PraatScripts(object):
             synthpath = self.praat_intensity(srcname, srctimestamps, synthpath, ttimestamps)
 
         # Duration last. Note that duration invalidates timestamp info.
-        #if duration:
-        #    synthpath = self.praat_duration(srctimestamps, synthpath, ttimestamps)
-        #    ttimestamps = srctimestamps
+        if duration:
+            synthpath = self.praat_duration(srctimestamps, synthpath, ttimestamps)
+            ttimestamps = srctimestamps
 
         # Teardown
         os.remove(srcname)
