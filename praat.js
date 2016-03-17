@@ -19,6 +19,14 @@ var Praat = (function() {
      */
     const HOST = 'https://localhost:8080/';
 
+    var toTimestampSequence = function(ts) {
+        var s = '';
+        ts.forEach(function(t) {
+            s += t[0] + ',' + t[1] + ',' + t[2];
+        });
+        return s;
+    };
+
     /**
      * TODO: Advanced. Runs a praat script with arguments provided by args array.
      * !! If an argument
@@ -100,7 +108,7 @@ var Praat = (function() {
                         console.log('PraatJS: ...Success!');
                 }
 
-                console.log('Timestamps: ', ts);
+                console.log('Timestamps: ', toTimestampSequence(ts));
                 resolve(ts);
             });
         });
@@ -141,6 +149,7 @@ var Praat = (function() {
 
             var fd = new FormData();
             console.log('PraatJS: Sending wavs [' + srcurl + ", " + targeturl + ']');
+            console.log('PraatJS: with timestamps', 'src=' + toTimestampSequence(srcts), 'tgt=' + toTimestampSequence(targetts));
             console.log('PraatJS: with synthesis options: ' + options);
             if (!_srcblob || !targetblob) console.log('Error: WAV blob is null.');
             fd.append('srcwav', _srcblob);

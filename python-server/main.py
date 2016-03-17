@@ -31,6 +31,16 @@ user_collection = db['users'] # for safety reasons
 
 constants = { 'SEGMENTS':40 }
 
+# Computes the mean-squared-error between arbitrary graphs. (normalizes dx beforehand)
+def mean_squared_error(A, B, abgn, aend, bbgn, bend):
+    nA = mapToInterval(normalizeDx(A, 200), (abgn, aend), (0, 100))
+    nB = mapToInterval(normalizeDx(B, 200), (bbgn, bend), (0, 100))
+    meanA = computeMean(nA)
+    meanB = computeMean(nB)
+    nA = mapSubtractY(nA, meanA - 500)
+    nB = mapSubtractY(nB, meanB - 500)
+    return sum([((nA[i][1] - nB[i][1])**2) for i in xrange(200)]) / 200.0
+
 # Calculates the area between two graphs
 # of arbitrary x-distances between each point.
 # > Does this by isolating the 'top graph' and the 'bottom graph'
@@ -124,18 +134,18 @@ def areaBetween(A, B):
             nextBottom = list(A[(i+1):]).insert(0, inter) # A is now the underdog
             nextTop = list(B[(j+1):]).insert(0, (inter[0], inter[1]+0.00001)) # B's starting value must be slightly higher
 
-            #area_under_top = areaUnder(top)
-            #area_under_bot = areaUnder(bottom)
-            #print('Area under top: ' + str(area_under_top))
-            #print('Area under bottom: ' + str(area_under_bot))
+            area_under_top = areaUnder(top)
+            area_under_bot = areaUnder(bottom)
+            print('Area under top: ' + str(area_under_top))
+            print('Area under bottom: ' + str(area_under_bot))
 
             return areaUnder(top) - areaUnder(bottom) + areaBetween(nextTop, nextBottom) # yay tail recursion
 
     # We've reached the end of B.
-    # area_under_top = areaUnder(top)
-    # area_under_bot = areaUnder(bottom)
-    # print('Area under top: ' + str(area_under_top))
-    # print('Area under bottom: ' + str(area_under_bot))
+    area_under_top = areaUnder(top)
+    area_under_bot = areaUnder(bottom)
+    print('Area under top: ' + str(area_under_top))
+    print('Area under bottom: ' + str(area_under_bot))
     return areaUnder(top) - areaUnder(bottom)
 
 def mapToInterval(A, originalInterval, newInterval):
@@ -197,11 +207,40 @@ def normalizeToUnitSquare(X, Y):
         else:
             dist = X[j] - X[j-1]
             a = (X[j] - x) / dist
-            y = a * Y[j] + (1.0 - a) * Y[j-1]
+            y = (1.0-a) * Y[j] + (a) * Y[j-1]
+            print(X[j], x, X[j-1], '    ', a)
 
         nY.append(y)
 
     return nY
+
+def normalizeDx(A, segs=100):
+
+    X = [A[i][0] for i in xrange(len(A))]
+    Y = [A[i][1] for i in xrange(len(A))]
+
+    dur = X[-1] - X[0]
+
+    # Normalize distance between points, so that dx is always constant.
+    # * This makes it easier to compare two contours. *
+    j = 0
+    nA = []
+    for i in xrange(segs):
+        x = (i / float(segs)) * dur + X[0]
+        while j < len(X) and X[j] < x:
+            j += 1
+        # this is the point immediately 'before' X[j], bc X[j-1] < x and X[j] >= x...
+        # (x - X[j]) / (X[j] - X[j-1])
+        if j == 0:
+            y = Y[j]
+        else:
+            dist = X[j] - X[j-1]
+            a = (X[j] - x) / dist
+            y = (1.0 - a) * Y[j] + a * Y[j-1]
+
+        nA.append((x, y))
+
+    return nA
 
 def convertAudioToWAV(wavfile, new_filename):
     cmd = ['ffmpeg', '-i', wavfile, new_filename]
@@ -345,11 +384,13 @@ def storeTempDurTier(wavdur, durps): # this is the short version, which is what 
     (_, filename) = tempfile.mkstemp()
     with open(filename, 'wb') as f:
         f.write('File type = "ooTextFile"\nObject class = "DurationTier"\n\n')
-        f.write('0')
+        f.write('0\n')
         f.write(str(wavdur) + '\n')
         f.write(str(len(durps) / 2) + '\n')
         for i in xrange(len(durps)):
             f.write(str(durps[i]) + '\n')
+    # with open(filename, 'r') as f:
+    #     print(f.read())
     os.chmod(filename, 0o755)
     return filename
 def storeTempIntensityTier(dataX, dataY):
@@ -362,6 +403,8 @@ def storeTempIntensityTier(dataX, dataY):
         for i in xrange(0, len(dataX)):
             f.write(str(dataX[i]) + '\n')
             f.write(str(dataY[i]) + '\n')
+    with open(filename, 'r') as f:
+         print(f.read())
     os.chmod(filename, 0o755)
     return filename
 def stringToTimestamps(strg):
@@ -379,8 +422,14 @@ def withoutZeros(Y):
 
 ### Given list of data points, returns standard deviation.
 def computeMeanAndDeviation(Y):
+    if type(Y[0]) is tuple:
+        Y = [Y[i][1] for i in xrange(len(Y))] # unzip the y-component of a graph
     u = sum(Y) / len(Y) # mean
     return (u, math.sqrt(sum([(y - u)*(y - u) for y in Y]) / len(Y)))
+def computeMean(Y):
+    if type(Y[0]) is tuple:
+        Y = [Y[i][1] for i in xrange(len(Y))]
+    return sum(Y) / len(Y)
 
 
 '''
@@ -510,16 +559,16 @@ class PraatScripts(object):
         # ! ORDER OF OPERATIONS IS IMPORTANT !
         # Perform prosodic transfer first (these calls are blocking):
         if prosody:
-            synthpath = self.praat_prosody(srcname, srctimestamps, synthpath, ttimestamps, 4000)
+            synthpath = self.praat_prosody(srcname, srctimestamps, synthpath, ttimestamps, 20)
 
         # Intensity next
         if intensity:
             synthpath = self.praat_intensity(srcname, srctimestamps, synthpath, ttimestamps)
 
         # Duration last. Note that duration invalidates timestamp info.
-        if duration:
-            synthpath = self.praat_duration(srctimestamps, synthpath, ttimestamps)
-            ttimestamps = srctimestamps
+        #if duration:
+        #    synthpath = self.praat_duration(srctimestamps, synthpath, ttimestamps)
+        #    ttimestamps = srctimestamps
 
         # Teardown
         os.remove(srcname)
@@ -671,8 +720,18 @@ class PraatScripts(object):
             for i in xrange(len(A)):
                 x = A[i]
                 y = B[i]
+
+                # if i > 0 and A[i-1] < bgn and x >= bgn: # append intersection point w/ bgn
+                #     ratio = (bgn - A[i-1]) / (x - A[i-1])
+                #     pps.append([bgn, ratio * y + (1.0 - ratio) * B[i-1]])
+
                 if x >= bgn and x < end:
                     pps.append([x, y])
+                elif x >= end:
+                    # if i > 0 and A[i-1] < end: # append intersection point w/ end
+                    #     ratio = (end - A[i-1]) / (x - A[i-1])
+                    #     pps.append([bgn, ratio * y + (1.0 - ratio) * B[i-1]])
+                    break
             return pps # format [x, y]
 
         # Transpose pitch points from source to target, according to timestamp data.
@@ -681,7 +740,9 @@ class PraatScripts(object):
         # -> 3. Translate + scale the pitch points to the corresponding target segment.
         # -> 4. OPT: Normalize pitch Hz using target's avg pitch, and OPT scale Y using std deviation
         # -> 5. Write result (tX, tY) into new pitch tier and save
+        #_, nY = normalizeToUnitSquare(X, withoutZeros(Y))
         (src_mean, src_stdeviation) = computeMeanAndDeviation(withoutZeros(Y))
+        #src_mean *= max(Y) - min(Y)
         (tgt_mean, tgt_stdeviation) = computeMeanAndDeviation(withoutZeros(ttsY))
         print('srcmean --------> ' + str(src_mean))
         print('srcdev --------> ' + str(src_stdeviation))
@@ -700,7 +761,7 @@ class PraatScripts(object):
             lentgt = tend - tbgn
             pps = _getPitchPointsInSegment(bgn, end, X, Y)
 
-            if abs(tbgn - tend) < 0.00001:
+            if abs(tbgn - tend) < 0.00001:# or len(pps) == 0 or len(tpps) == 0:
                 tpps = _getPitchPointsInSegment(tbgn, tend, ttsX, ttsY)
                 for m in xrange(len(tpps)):
                     tX.append(tpps[m][0])
@@ -710,22 +771,31 @@ class PraatScripts(object):
 
             if transferThreshold != 0:
                 tpps = _getPitchPointsInSegment(tbgn, tend, ttsX, ttsY)
-                norm_tpps = mapSubtractY(mapToInterval(toTupleList(tpps), (tbgn, tend), (0, 100)), tgt_mean - 1000)
-                norm_pps = mapSubtractY(mapToInterval(toTupleList(pps), (bgn, end), (0, 100)), src_mean - 1000) # that -1000 ensures all the y's will be > 0 for areaBetween.
+
                 # print('Calculating difference between prosodic curves for "' + srcts[0] + '"...')
-                if len(norm_tpps) == 0 or len(norm_pps) == 0:
+                if len(tpps) == 0 or len(pps) == 0:
+                    rmse = 0
                     area = 0
                 else:
-                    area = areaBetween(norm_pps, norm_tpps)
+
+                    rmse = math.sqrt(mean_squared_error(toTupleList(pps), toTupleList(tpps), bgn, end, tbgn, tend))
+                    #print('Root mean squared error: ' + str(rmse))
+
+                    #(tpps_mean, _) = computeMeanAndDeviation(normalizeDx(tpps))
+                    #(pps_mean, _) = computeMeanAndDeviation(normalizeDx(pps))
+                    #norm_tpps = mapSubtractY(mapToInterval(toTupleList(tpps), (tbgn, tend), (0, 100)), tpps_mean - 1000)
+                    #norm_pps = mapSubtractY(mapToInterval(toTupleList(pps), (bgn, end), (0, 100)), pps_mean - 1000) # that -1000 ensures all the y's will be > 0 for areaBetween.
+                    #area = areaBetween(norm_pps, norm_tpps)
+
                 # print('Difference between prosodic curves for "' + srcts[0] + '" is ', area)
-                if area < transferThreshold:
+                if rmse < transferThreshold:
                     for m in xrange(len(tpps)):
                         tX.append(tpps[m][0])
                         tY.append(tpps[m][1])
-                    print('(skipping "' + srcts[0] + '")')
+                    print('(skipping "' + srcts[0] + '" with rms ' + str(rmse) + ')')
                     continue # Skip the prosody transfer for this word b/c it doesn't clear our threshold difference.
 
-            print('Transferring prosody for word "' + srcts[0] + '" with area ' + str(area))
+            print('Transferring prosody for word "' + srcts[0] + '" with rms ' + str(rmse))
             for p in pps:
                 if p[1] > src_mean * 2.5: continue # skip outliers
 
@@ -819,12 +889,12 @@ class PraatScripts(object):
         # Calculate avg intensity for each word
         # Calculate avg intensity for the whole sentence
         (avgint_src, stdeviation_src) = computeMeanAndDeviation(withoutZeros(Y)) # TODO: Weight points by area...
-        (avgint_tgt, stdeviation_tgt) = computeMeanAndDeviation(withoutZeros(Y)) # TODO: Weight points by area...
+        (avgint_tgt, stdeviation_tgt) = computeMeanAndDeviation(withoutZeros(tY)) # TODO: Weight points by area...
 
-        tintmax = max(Y)
-        aY = []
-        for i in xrange(len(Y)):
-            aY.append(tintmax - Y[i])
+        tintmax = max(tY)
+        #aY = []
+        #for i in xrange(len(Y)):
+        #    aY.append(tintmax - Y[i])
 
         def _getIntPointsInSegment(bgn, end, X, Y):
             pps = []
@@ -866,6 +936,8 @@ class PraatScripts(object):
                 print('Warning @ praat_intensity: skipping word-intensity gap. TODO: fix in future!')
                 continue
 
+
+
             # DEBUG: Invert contour
             '''for k in xrange(len(tpps)):
                 tp = tpps[k]
@@ -875,9 +947,21 @@ class PraatScripts(object):
                 aY.append(ty)
             continue'''
 
+            for p in pps:
+                dx = p[0] - bgn
+                tdx = (dx / (end-bgn)) * (tend-tbgn)
+                tp = tbgn + tdx
+                aX.append(tp)
+                aY.append(p[1] / avgint_src * avgint_tgt)
+            continue
+
             # Calculate average intensity of the word
-            avgint_word = _getAvgInt(pps)
-            avgint_word_tgt = _getAvgInt(tpps)
+            avgint_word = max(_getAvgInt(pps), 0)
+            avgint_word_tgt = max(_getAvgInt(tpps), 0)
+
+            if avgint_word_tgt == 0 or avgint_word == 0:
+                avgint_word = avgint_src
+                avgint_word_tgt = avgint_tgt
 
             # Compute how the word's intensity differs from the avg
             intmult_src = avgint_word / avgint_src # e.g., 120% intensity = 1.2
@@ -890,9 +974,9 @@ class PraatScripts(object):
             # intmult_src / intmult_tgt would equal 1.5, corresponding to a 50% increase. Conversely,
             # scaling target 1.2 to src 0.8 corresponds to a 33.3% decrease. Does that make sense?
             aX.append(tbgn+0.000001)
-            aY.append(10 ** (intmult_src / intmult_tgt)) # if intensity variations are equal, this will do nothing!
+            aY.append(avgint_tgt * (intmult_src / intmult_tgt)) # if intensity variations are equal, this will do nothing!
             aX.append(tend-0.000001)
-            aY.append(10 ** (intmult_src / intmult_tgt))
+            aY.append(avgint_tgt * (intmult_src / intmult_tgt))
 
         tinttier = storeTempIntensityTier(aX, aY) # will need to figure out xmin and xmax properties ...
 
@@ -945,14 +1029,21 @@ class PraatScripts(object):
             tdurspace = prev_tend - tbgn
             dursrc = end - bgn
             durtgt = tend - tbgn
-            ratio = 1.4 * dursrc / (durtgt + 0.00001)
+
+            if dursrc > durtgt:
+                ratio = 1.0 # don't stretch.
+            else:
+                ratio = dursrc / (durtgt + 0.00001)
+                if ratio < 0.5: ratio = 0.5 # don't shrink too much
             bgn_space_ratio = 1.0
 
             if durspace > 0 and tdurspace > 0: # We should scale the spaces too!
                 bgn_space_ratio = durspace / tdurspace
                 durps[-1] = bgn_space_ratio # we make sure the previous point mirrors the new duration for the space.
+            #elif len(durps) > 0:
+            #    durps = durps[:-2]
 
-            durps.append([tbgn, bgn_space_ratio, tbgn+0.00001, ratio, tend-0.00001, ratio, tend, 1.0])
+            durps.extend([tbgn, bgn_space_ratio, tbgn+0.00001, ratio, tend-0.00001, ratio, tend, 1.0])
 
             prev_bgn = bgn
             prev_end = end
