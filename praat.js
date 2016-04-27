@@ -22,7 +22,7 @@ var Praat = (function() {
     var toTimestampSequence = function(ts) {
         var s = '';
         ts.forEach(function(t) {
-            s += t[0] + ',' + t[1] + ',' + t[2];
+            s += t[0] + ',' + t[1] + ',' + t[2] + ',';
         });
         return s;
     };
@@ -77,7 +77,10 @@ var Praat = (function() {
                 // array length matches the # of words in the transcript.
                 if (words.length !== ts.length) {
                     console.log('PraatJS: HTK returned ' + ts.length + ' timestamps when ' + words.length + ' were sent. Attempting a repair...');
-                    var matches = function(w1,w2) { return w1.trim().toLowerCase() === w2.trim().toLowerCase(); };
+                    var stripPunctuation = function(s) { return s.replace(/[.,-\/#!?$%\^&\*;:{}=\-_`~()]/g,""); };
+                    var matches = function(w1,w2) {
+                        return stripPunctuation(w1.trim()).toLowerCase() === stripPunctuation(w2.trim()).replace().toLowerCase();
+                    };
                     for (i = 0; i < words.length; i++) {
                         if (i >= ts.length) {
                             // Append all missing words before breaking out. (handles case of unknown word at end of ts's)
